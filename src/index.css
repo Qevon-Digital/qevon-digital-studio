@@ -141,7 +141,11 @@ body {
   color: var(--muted);
   transition: color 0.15s;
 }
-.nav-link:hover {
+/* :active as well as :hover — on touch devices hover either never fires or
+   sticks after the tap, so a press-state is what actually gives feedback
+   there. Same token, so pointer and touch land on the identical orange. */
+.nav-link:hover,
+.nav-link:active {
   color: var(--accent-hover);
 }
 .nav-link.active,

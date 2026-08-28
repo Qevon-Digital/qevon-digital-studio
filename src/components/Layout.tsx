@@ -21,7 +21,7 @@ const navLinks = [
  *
  * These were previously hardcoded `href="#"` anchors, which reload the page
  * when clicked. A dead link in the footer reads as an unfinished site, so the
- * rule here is: no URL, no link. hello@qevon.com is rendered separately and
+ * rule here is: no URL, no link. qevondigital@outlook.com is rendered separately and
  * always shows.
  */
 const socialLinks = [
@@ -109,7 +109,7 @@ export default function Layout() {
               <Link
                 key={link.href}
                 to={link.href}
-                className={`nav-link text-xs font-medium tracking-[0.15em] ${location.pathname === link.href ? 'active' : ''}`}
+                className={`nav-link text-[13px] font-medium tracking-[0.15em] ${location.pathname === link.href ? 'active' : ''}`}
                 style={{ fontFamily: "'Inter Tight', sans-serif" }}
               >
                 {link.label}
@@ -212,18 +212,18 @@ export default function Layout() {
       {/* Footer */}
       <footer style={{ borderTop: '1px solid var(--border)' }} className="mt-0">
         <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-16">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8 lg:gap-12 mb-16">
             <div className="md:col-span-2">
               <div className="mb-4">
-                <Logo size={36} />
+                <Logo size={44} />
               </div>
-              <p className="text-sm leading-relaxed max-w-xs" style={{ color: 'var(--muted)' }}>
+              <p className="text-sm lg:text-base leading-relaxed max-w-sm" style={{ color: 'var(--muted)' }}>
                 Software engineering studio. We design, engineer and deploy software and the infrastructure it runs on.
               </p>
             </div>
             <div>
               <div
-                className="text-sm font-bold tracking-[0.15em] mb-4"
+                className="text-[15px] lg:text-base font-bold tracking-[0.15em] mb-5"
                 style={{ color: 'var(--accent-text)', fontFamily: "'Inter Tight', sans-serif" }}
               >
                 NAVIGATION
@@ -233,8 +233,8 @@ export default function Layout() {
                   <Link
                     key={link.href}
                     to={link.href}
-                    className="text-sm transition-colors hover:[color:var(--text)]"
-                    style={{ color: 'var(--muted)', fontFamily: "'Inter Tight', sans-serif" }}
+                    className="nav-link text-[15px] lg:text-base"
+                    style={{ fontFamily: "'Inter Tight', sans-serif" }}
                   >
                     {link.label}
                   </Link>
@@ -243,18 +243,18 @@ export default function Layout() {
             </div>
             <div>
               <div
-                className="text-sm font-bold tracking-[0.15em] mb-4"
+                className="text-[15px] lg:text-base font-bold tracking-[0.15em] mb-5"
                 style={{ color: 'var(--accent-text)', fontFamily: "'Inter Tight', sans-serif" }}
               >
                 CONNECT
               </div>
               <div className="flex flex-col gap-3">
                 <a
-                  href="mailto:hello@qevon.com"
-                  className="text-sm transition-colors hover:[color:var(--text)]"
-                  style={{ color: 'var(--muted)', fontFamily: "'Inter Tight', sans-serif" }}
+                  href="mailto:qevondigital@outlook.com"
+                  className="nav-link text-[15px] lg:text-base"
+                  style={{ fontFamily: "'Inter Tight', sans-serif" }}
                 >
-                  hello@qevon.com
+                  qevondigital@outlook.com
                 </a>
                 {socialLinks.map((link) => (
                   <a
@@ -262,8 +262,8 @@ export default function Layout() {
                     href={link.url}
                     target="_blank"
                     rel="noreferrer noopener"
-                    className="text-sm transition-colors hover:[color:var(--text)]"
-                    style={{ color: 'var(--muted)', fontFamily: "'Inter Tight', sans-serif" }}
+                    className="nav-link text-[15px] lg:text-base"
+                    style={{ fontFamily: "'Inter Tight', sans-serif" }}
                   >
                     {link.label}
                   </a>

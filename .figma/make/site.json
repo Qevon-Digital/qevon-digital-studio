@@ -8,7 +8,7 @@
     "icon": "/favicon.svg"
   },
   "openGraph": {
-    "image": "https://qevon.com/og-image.png"
+    "image": "https://qevon.vercel.app/og-image.png"
   },
   "accessibility": {
     "addBypassLinks": true,

@@ -63,8 +63,8 @@ export function ErrorScreen({ message }: { message?: string }) {
           <p className="text-base leading-relaxed mb-8" style={{ color: 'var(--muted)' }}>
             An error stopped this page rendering. Reloading usually fixes it. If it doesn't,
             tell us at{' '}
-            <a href="mailto:hello@qevon.com" style={{ color: 'var(--accent-text)' }}>
-              hello@qevon.com
+            <a href="mailto:qevondigital@outlook.com" style={{ color: 'var(--accent-text)' }}>
+              qevondigital@outlook.com
             </a>{' '}
             and we'll look at it.
           </p>

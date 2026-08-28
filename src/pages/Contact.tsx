@@ -24,7 +24,7 @@ export default function Contact() {
   // It shows the success state and discards the submission. Every enquiry
   // made through it is currently lost. Wire it to a form service (Web3Forms,
   // Formspree) or an API route BEFORE relying on it for real leads. Until
-  // then hello@qevon.com, shown alongside, is the only working route in.
+  // then qevondigital@outlook.com, shown alongside, is the only working route in.
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSent(true);
@@ -69,7 +69,7 @@ export default function Contact() {
               </p>
               <p className="text-sm" style={{ color: 'var(--muted)' }}>
                 In the meantime, reach us directly at{' '}
-                <a href="mailto:hello@qevon.com" style={{ color: 'var(--accent-text)' }}>hello@qevon.com</a>
+                <a href="mailto:qevondigital@outlook.com" style={{ color: 'var(--accent-text)' }}>qevondigital@outlook.com</a>
               </p>
             </div>
           </motion.div>
@@ -105,8 +105,8 @@ export default function Contact() {
               <div className="space-y-8">
                 <div>
                   <div className="text-xs font-semibold tracking-[0.15em] mb-2" style={labelStyle}>EMAIL</div>
-                  <a href="mailto:hello@qevon.com" className="text-base transition-colors hover:[color:var(--text)]" style={{ color: 'var(--muted)' }}>
-                    hello@qevon.com
+                  <a href="mailto:qevondigital@outlook.com" className="nav-link text-base">
+                    qevondigital@outlook.com
                   </a>
                 </div>
                 <div>

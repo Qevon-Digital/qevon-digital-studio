@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://qevon.com/sitemap.xml
+Sitemap: https://qevon.vercel.app/sitemap.xml
