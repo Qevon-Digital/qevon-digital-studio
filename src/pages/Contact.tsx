@@ -11,7 +11,12 @@ export default function Contact() {
   const [form, setForm] = useState({
     name: '', company: '', email: '', budget: '', services: [] as string[], message: '',
   });
-  const [sent, setSent] = useState(false);
+  // Honeypot: a real user never fills this (it's visually hidden and
+  // aria-hidden); bots that auto-fill every field do. Non-empty → drop.
+  const [botcheck, setBotcheck] = useState('');
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+
+  const sent = status === 'sent';
 
   const toggle = (s: string) => {
     setForm((f) => ({
@@ -20,14 +25,54 @@ export default function Contact() {
     }));
   };
 
-  // ⚠️ TODO — THIS FORM DOES NOT SEND ANYTHING.
-  // It shows the success state and discards the submission. Every enquiry
-  // made through it is currently lost. Wire it to a form service (Web3Forms,
-  // Formspree) or an API route BEFORE relying on it for real leads. Until
-  // then qevondigital@outlook.com, shown alongside, is the only working route in.
-  const handleSubmit = (e: React.FormEvent) => {
+  // Contact form → Web3Forms (https://web3forms.com), which emails the
+  // submission to the account behind VITE_WEB3FORMS_KEY. No backend: the
+  // POST goes straight from the browser to their API. The access key is not
+  // a secret in the security sense — it only authorises "send an email to
+  // this one inbox" — so shipping it in the client bundle is expected.
+  //
+  // Failure shows an error state rather than a false "MESSAGE RECEIVED":
+  // a form that silently loses mail is worse than an obvious one.
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSent(true);
+    if (botcheck) return; // honeypot tripped — pretend nothing happened
+    if (status === 'sending') return;
+
+    const key = import.meta.env.VITE_WEB3FORMS_KEY;
+    if (!key) {
+      console.error('VITE_WEB3FORMS_KEY is not set — contact form cannot send.');
+      setStatus('error');
+      return;
+    }
+
+    setStatus('sending');
+    try {
+      const res = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          access_key: key,
+          subject: `New project enquiry — ${form.name || 'Qevon site'}`,
+          from_name: 'Qevon website',
+          name: form.name,
+          email: form.email,
+          company: form.company || '—',
+          budget: form.budget || '—',
+          services: form.services.length ? form.services.join(', ') : '—',
+          message: form.message,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setStatus('sent');
+      } else {
+        console.error('Web3Forms rejected the submission:', data);
+        setStatus('error');
+      }
+    } catch (err) {
+      console.error('Contact form request failed:', err);
+      setStatus('error');
+    }
   };
 
   const inputStyle = {
@@ -125,6 +170,21 @@ export default function Contact() {
           <FadeIn delay={0.1}>
             <form onSubmit={handleSubmit} className="space-y-6">
 
+              {/* Honeypot — hidden from users and assistive tech, catches
+                  bots that fill every field. Not display:none (some bots
+                  skip those); off-screen + zero-size + tab-skipped. */}
+              <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 0, height: 0, overflow: 'hidden' }}>
+                <label htmlFor="contact-botcheck">Leave this field empty</label>
+                <input
+                  id="contact-botcheck"
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={botcheck}
+                  onChange={(e) => setBotcheck(e.target.value)}
+                />
+              </div>
+
               {/* Name + Company */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -133,6 +193,7 @@ export default function Contact() {
                     id="contact-name"
                     required
                     type="text"
+                    maxLength={100}
                     autoComplete="name"
                     placeholder="Marcus Chen"
                     className="w-full px-4 py-3 focus:outline-none focus:[border-color:var(--accent-text)] focus:[box-shadow:0_0_0_3px_rgba(255,90,31,0.25)] transition-colors"
@@ -146,6 +207,7 @@ export default function Contact() {
                   <input
                     id="contact-company"
                     type="text"
+                    maxLength={100}
                     autoComplete="organization"
                     placeholder="Acme Corp"
                     className="w-full px-4 py-3 focus:outline-none focus:[border-color:var(--accent-text)] focus:[box-shadow:0_0_0_3px_rgba(255,90,31,0.25)] transition-colors"
@@ -163,6 +225,7 @@ export default function Contact() {
                   id="contact-email"
                   required
                   type="email"
+                  maxLength={150}
                   autoComplete="email"
                   placeholder="you@company.com"
                   className="w-full px-4 py-3 focus:outline-none focus:[border-color:var(--accent-text)] focus:[box-shadow:0_0_0_3px_rgba(255,90,31,0.25)] transition-colors"
@@ -239,6 +302,7 @@ export default function Contact() {
                   id="contact-message"
                   required
                   rows={5}
+                  maxLength={5000}
                   placeholder="What are you building? What's the current state? What does success look like?"
                   className="w-full px-4 py-3 resize-none transition-colors focus:outline-none focus:[border-color:var(--accent-text)] focus:[box-shadow:0_0_0_3px_rgba(255,90,31,0.25)]"
                   style={inputStyle}
@@ -250,12 +314,20 @@ export default function Contact() {
               <MagneticButton strength={0.15} className="block">
                 <button
                   type="submit"
-                  className="btn-accent w-full py-4 text-sm font-semibold tracking-[0.12em]"
+                  disabled={status === 'sending'}
+                  className="btn-accent w-full py-4 text-sm font-semibold tracking-[0.12em] disabled:opacity-70 disabled:cursor-not-allowed"
                   style={{ background: 'var(--accent)', color: 'var(--accent-contrast)', fontFamily: "'Inter Tight', sans-serif" }}
                 >
-                  SEND MESSAGE →
+                  {status === 'sending' ? 'SENDING…' : 'SEND MESSAGE →'}
                 </button>
               </MagneticButton>
+
+              {status === 'error' && (
+                <p role="alert" className="text-xs text-center" style={{ color: 'var(--accent-text)' }}>
+                  Something went wrong sending that. Email us directly at{' '}
+                  <a href="mailto:qevondigital@outlook.com" style={{ textDecoration: 'underline' }}>qevondigital@outlook.com</a>.
+                </p>
+              )}
 
               <p className="text-xs text-center" style={{ color: 'var(--muted)' }}>
                 No sales team. No automated follow-ups. Just the people who'll build with you.
