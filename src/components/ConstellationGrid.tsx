@@ -34,6 +34,12 @@ const ACCENT_RGB = [255, 90, 31]; // Qevon orange
 // pointer is untouched in both themes, so the interaction reads identically.
 let MESH_ALPHA = 1;
 
+// Glow strength, scaled per theme. The orange is the same colour in both
+// themes, but it reads noticeably weaker over the warm-white light background
+// than it does over near-black — so light gets the larger lift. This is the
+// one theme-dependent value the glow has; everything else about it is shared.
+let GLOW_ALPHA_SCALE = 1;
+
 const hexToRgb = (hex: string): [number, number, number] => {
   const clean = hex.trim().replace('#', '');
   const full = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean;
@@ -54,7 +60,9 @@ const syncThemeColors = () => {
     NODE_RGB[1] = g;
     NODE_RGB[2] = b;
   }
-  MESH_ALPHA = document.documentElement.getAttribute('data-theme') === 'light' ? 0.55 : 1;
+  const light = document.documentElement.getAttribute('data-theme') === 'light';
+  MESH_ALPHA = light ? 0.55 : 1;
+  GLOW_ALPHA_SCALE = light ? 1.3 : 1.1;
 };
 
 const lerpColor = (a: number[], b: number[], t: number) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
@@ -86,12 +94,18 @@ const IDLE_TIMEOUT_MS = 600;
 // Interaction geometry. Phones get a much tighter light: 200px on a 375px
 // viewport is an ambient wash across most of the screen rather than a glow
 // under the finger, and the heat expansion is scaled back to match.
-const LIGHT_RADIUS_PHONE = 110;
-const LIGHT_RADIUS_DESKTOP = 200;
+const LIGHT_RADIUS_PHONE = 96;
+const LIGHT_RADIUS_DESKTOP = 176;
 const PHYS_RADIUS_PHONE = 105;
 const PHYS_RADIUS_DESKTOP = 140;
 const HEAT_EXPAND_PHONE = 0.3;
 const HEAT_EXPAND_DESKTOP = 0.6;
+
+// Glow alpha, before GLOW_ALPHA_SCALE (theme) is applied. `base` is the
+// hover / currently-touching wash; `heat` is the press-and-hold bloom layered
+// on top. Pulled out of the render loop so both live next to the geometry.
+const GLOW_BASE_ALPHA = 0.09;
+const GLOW_HEAT_ALPHA = 0.13;
 
 // Heat timing. The floor is applied the instant a press starts so feedback is
 // visible on the very next frame instead of ramping up from nothing; the rise
@@ -103,6 +117,14 @@ const HEAT_FLOOR = 0.5;
 const HEAT_RISE_TAU = 0.1;
 const HEAT_FALL_TAU = 0.12;
 const HEAT_EPS = 0.005;
+// After a touch lifts, keep the pointer "on screen" at its last position for
+// this long instead of parking it instantly. A fast flick-scroll holds the
+// finger down for barely 100ms; without this window the whole gesture — heat,
+// kickback — is over before it renders a single frame, because every effect
+// downstream is gated on the pointer being on screen. During the window the
+// press is already released (active = false), so nothing drags or buzzes; the
+// mesh just coasts to a stop and the heat decays the way a release should.
+const TOUCH_RELEASE_MS = 300;
 // Scroll-driven heat gets its own, much longer ramp than a press does. A
 // press is a discrete on/off event, so it should snap; scroll velocity is a
 // continuously fluctuating signal, and following it at press speed made the
@@ -301,6 +323,10 @@ export default function ConstellationGrid({ paused = false }: { paused?: boolean
       jitter: 0,
       holdStillMs: 0,
       active: false,
+      // Counts down from TOUCH_RELEASE_MS after a touch lifts. While > 0 the
+      // pointer stays "on screen" at its last position so the release gesture
+      // can finish rendering; when it hits 0, x/y park offscreen.
+      releaseMs: 0,
       energy: 1, // gesture energy — see GESTURE_ENERGY_* above
       radius: PHYS_RADIUS_DESKTOP, // physics interaction zone (node scatter)
       lightRadius: LIGHT_RADIUS_DESKTOP, // visible glow radius
@@ -461,6 +487,7 @@ export default function ConstellationGrid({ paused = false }: { paused?: boolean
       pointer.y = e.clientY;
       pointer.active = true;
       pointer.holdStillMs = 0;
+      pointer.releaseMs = 0;
       pointer.energy = 1;
       pointer.heat = Math.max(pointer.heat, HEAT_FLOOR);
       wake();
@@ -474,6 +501,7 @@ export default function ConstellationGrid({ paused = false }: { paused?: boolean
       // existing, unchanged desktop behaviour. A pen has no hover state, so
       // release parks it and lets the glow decay at the last touched spot.
       if (e.pointerType !== 'mouse') {
+        pointer.releaseMs = 0;
         pointer.x = -1000;
         pointer.y = -1000;
       }
@@ -497,6 +525,7 @@ export default function ConstellationGrid({ paused = false }: { paused?: boolean
       pointer.glowVY = 0;
       pointer.active = true;
       pointer.holdStillMs = 0;
+      pointer.releaseMs = 0;
       pointer.energy = 1;
       speedSmooth = 0;
       dragVelX = 0;
@@ -518,8 +547,11 @@ export default function ConstellationGrid({ paused = false }: { paused?: boolean
       if (e.touches.length > 0) return;
       pointer.active = false;
       pointer.holdStillMs = 0;
-      pointer.x = -1000;
-      pointer.y = -1000;
+      // Don't park x/y yet — hand off to the release window (see
+      // TOUCH_RELEASE_MS). The pointer stays where the finger left it, marked
+      // released, so the mesh can coast to a stop and the heat can decay
+      // before the position goes offscreen. render() does the countdown.
+      pointer.releaseMs = TOUCH_RELEASE_MS;
       wake();
     };
 
@@ -532,6 +564,7 @@ export default function ConstellationGrid({ paused = false }: { paused?: boolean
     // the window edge instead of fading out.
     const handleMouseLeaveDoc = (e: MouseEvent) => {
       if (e.relatedTarget) return;
+      pointer.releaseMs = 0;
       pointer.x = -1000;
       pointer.y = -1000;
       pointer.active = false;
@@ -678,6 +711,19 @@ export default function ConstellationGrid({ paused = false }: { paused?: boolean
       lastTime = now;
       const nowSec = now / 1000;
 
+      // Touch release window: a lifted finger keeps its last position for
+      // TOUCH_RELEASE_MS so the release gesture finishes rendering, then the
+      // pointer parks offscreen and scroll-driven heat (which needs x <= -500)
+      // can take over.
+      if (pointer.releaseMs > 0) {
+        pointer.releaseMs -= dt * 1000;
+        if (pointer.releaseMs <= 0) {
+          pointer.releaseMs = 0;
+          pointer.x = -1000;
+          pointer.y = -1000;
+        }
+      }
+
       // Real scroll velocity (px/sec), sampled once per frame and lightly
       // smoothed. Drives glow/heat only — see the SCROLL_* constants above.
       const scrollDeltaPx = scrollY - prevScrollY;
@@ -811,8 +857,8 @@ export default function ConstellationGrid({ paused = false }: { paused?: boolean
       // pointer rather than relying on individual node opacity alone.
       // `presence` is the baseline (hover, for a mouse; "currently touching"
       // for touch); `heat` is the extra press-and-hold bloom on top of that.
-      const glowBase = pointer.presence * 0.09;
-      const glowHeat = pointer.heat * 0.13;
+      const glowBase = pointer.presence * GLOW_BASE_ALPHA * GLOW_ALPHA_SCALE;
+      const glowHeat = pointer.heat * GLOW_HEAT_ALPHA * GLOW_ALPHA_SCALE;
       const glowAlpha = glowBase + glowHeat;
       const glowRadius = pointer.lightRadius * (1 + pointer.heat * pointer.heatExpand);
 
@@ -1002,6 +1048,7 @@ export default function ConstellationGrid({ paused = false }: { paused?: boolean
         pointer.heat < IDLE_SETTLE_EPS &&
         pointer.jitter < IDLE_SETTLE_EPS &&
         !pointer.active &&
+        pointer.releaseMs <= 0 &&
         !scrollActive;
 
       if (settled) {

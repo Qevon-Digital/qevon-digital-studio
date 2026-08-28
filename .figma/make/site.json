@@ -8,13 +8,14 @@
     "icon": "/favicon.svg"
   },
   "openGraph": {
-    "image": "https://qevon.vercel.app/og-image.png"
+    "image": "https://qevon.vercel.app/og-image.jpg"
   },
   "accessibility": {
     "addBypassLinks": true,
     "ignoreReducedMotion": false
   },
   "customScripts": {
-    "headEnd": "<script>(function(){try{if(localStorage.getItem('qevon-theme')==='light'){document.documentElement.setAttribute('data-theme','light');}}catch(e){}})();</script>"
+    "headEnd": "<script>(function(){try{if(localStorage.getItem('qevon-theme')==='light'){document.documentElement.setAttribute('data-theme','light');}}catch(e){}})();</script>",
+    "bodyEnd": "<script defer src=\"/_vercel/insights/script.js\"></script>"
   }
 }

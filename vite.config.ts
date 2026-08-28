@@ -150,6 +150,10 @@ function figmaSiteConfiguration(config: FigmaSiteConfiguration): Plugin {
         if (favicon) {
           tags.push({ tag: 'link', attrs: { rel: 'icon', href: favicon }, injectTo: 'head' })
         }
+        tags.push(
+          { tag: 'meta', attrs: { property: 'og:type', content: 'website' }, injectTo: 'head' },
+          { tag: 'meta', attrs: { property: 'og:site_name', content: 'Qevon' }, injectTo: 'head' },
+        )
         if (title) {
           tags.push({ tag: 'meta', attrs: { property: 'og:title', content: title }, injectTo: 'head' })
         }
@@ -157,8 +161,18 @@ function figmaSiteConfiguration(config: FigmaSiteConfiguration): Plugin {
           tags.push({ tag: 'meta', attrs: { property: 'og:description', content: description }, injectTo: 'head' })
         }
         if (socialImage) {
+          // Explicit dimensions + type matter: chat apps (WhatsApp, Telegram,
+          // Messenger) render the small square-cropped thumbnail when they
+          // can't confirm the image is large, and the wide 1.91:1 card when
+          // they can. The image this points at is authored at exactly 1200x630
+          // by `npm run og` (scripts/make-og-image.mjs).
+          const isJpeg = /\.jpe?g($|\?)/i.test(socialImage)
           tags.push(
             { tag: 'meta', attrs: { property: 'og:image', content: socialImage }, injectTo: 'head' },
+            { tag: 'meta', attrs: { property: 'og:image:type', content: isJpeg ? 'image/jpeg' : 'image/png' }, injectTo: 'head' },
+            { tag: 'meta', attrs: { property: 'og:image:width', content: '1200' }, injectTo: 'head' },
+            { tag: 'meta', attrs: { property: 'og:image:height', content: '630' }, injectTo: 'head' },
+            { tag: 'meta', attrs: { property: 'og:image:alt', content: title }, injectTo: 'head' },
             { tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' }, injectTo: 'head' },
             { tag: 'meta', attrs: { name: 'twitter:image', content: socialImage }, injectTo: 'head' },
           )
