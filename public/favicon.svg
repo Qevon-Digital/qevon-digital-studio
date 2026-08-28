@@ -1,0 +1,10 @@
+<!--
+  Heavier stroke and a slightly smaller circle than the in-page LogoMark
+  (13 vs 9 on the same 100 viewBox). The site's hairline version is correct at
+  34px+ but closes up to a smudge in a 16px browser tab, so the tab icon is
+  drawn thicker on purpose rather than scaled down from the same artwork.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="32" fill="none" stroke="#FF5A1F" stroke-width="13" />
+  <line x1="61" y1="61" x2="84" y2="84" stroke="#FF5A1F" stroke-width="13" stroke-linecap="butt" />
+</svg>

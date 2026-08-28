@@ -1,0 +1,28 @@
+# Line endings: normalise to LF in the repo regardless of what the working
+# copy uses. Without this, committing from Windows can land CRLF in the repo
+# and produce whole-file diffs for anyone on another OS.
+* text=auto eol=lf
+
+# Binary assets — never diffed, never line-ending-converted.
+*.png binary
+*.webp binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.woff2 binary
+
+# SVG is text and worth diffing (the favicon is hand-edited).
+*.svg text
+
+# NOTE: this repo deliberately does NOT use Git LFS.
+#
+# The scaffold this project started from shipped a generic .gitattributes that
+# routed *.png and *.webp through LFS. That would have broken the production
+# site: Vercel does not fetch LFS objects during a build, so it checks out the
+# text pointer files and serves those as images — every project screenshot and
+# the link-preview image would 404 or render as garbage.
+#
+# LFS also buys nothing here. The entire binary payload is ~480KB, and images
+# are downscaled to WebP by scripts/optimize-images.mjs before they land.
+# Do not reintroduce LFS filters without also configuring the host to fetch
+# them.

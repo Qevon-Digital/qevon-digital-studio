@@ -1,0 +1,54 @@
+node_modules/
+dist/
+build/
+.cache/
+.env*
+.vite/
+vite.config.*.timestamp-*
+*.tsbuildinfo
+*-debug.log*
+logs/
+*.log
+.claude-replay.*
+.tmp-*
+*.local
+
+# Vercel CLI state (project linking, local env pulls)
+.vercel/
+
+# OS cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Assistant/tooling config and internal notes. These live outside the repo in
+# C:\Site-internal and must never be committed here — this is a safety net in
+# case one is ever created inside the working tree by mistake.
+.claude/
+.cursor/
+.aider*
+CLAUDE.md
+AGENTS.md
+HANDOFF.md
+/internal/
+
+# Platform-managed agentplat state, not project source. In the
+# client-initiated single-repo workspace layout (make's `Path: "."` spec) the
+# repo root IS the workspace root, so these land inside this repo rather than
+# beside it.
+/.plugins/
+/.opencode-skills/
+
+# NOTE: .figma/make/site.json must stay committed — vite.config.ts imports it
+# at config-eval time for the <title>, meta description, OG tags and the
+# no-flash theme bootstrap script. Ignoring it breaks the production build.
+
+# This project uses pnpm (see .mise.toml). A second lockfile makes the
+# install ambiguous on CI, so npm/yarn lockfiles are not tracked.
+package-lock.json
+yarn.lock

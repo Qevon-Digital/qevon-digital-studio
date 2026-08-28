@@ -1,0 +1,20 @@
+{
+  "title": "Qevon — Software Engineering Studio",
+  "description": "Software engineering studio. We design, engineer and deploy software and the infrastructure it runs on.",
+  "robots": {
+    "index": true
+  },
+  "icons": {
+    "icon": "/favicon.svg"
+  },
+  "openGraph": {
+    "image": "https://qevon.com/og-image.png"
+  },
+  "accessibility": {
+    "addBypassLinks": true,
+    "ignoreReducedMotion": false
+  },
+  "customScripts": {
+    "headEnd": "<script>(function(){try{if(localStorage.getItem('qevon-theme')==='light'){document.documentElement.setAttribute('data-theme','light');}}catch(e){}})();</script>"
+  }
+}

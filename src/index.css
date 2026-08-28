@@ -1,0 +1,215 @@
+/* Font <link>s live in index.html, not an @import here — see the comment
+   there for why (render-blocking round trips). */
+@import 'tailwindcss';
+
+/*
+ * Theme tokens. Dark is the default palette (on :root, unqualified) since
+ * that's the site's original identity; :root[data-theme="light"] overrides
+ * it. Which one applies on first paint is decided by a blocking bootstrap
+ * script (injected via .figma/make/site.json's customScripts.headEnd) that
+ * reads localStorage / prefers-color-scheme and stamps the attribute before
+ * the first frame — see ThemeToggle.tsx for the same logic on later toggles.
+ *
+ * --accent intentionally does NOT change between themes: #FF5A1F is a FILL
+ * color (buttons, chips, the logo mark, rules) and near-black text sits on
+ * top of it in both themes, so the pairing never needs to change.
+ * --accent-text is the one deliberate non-inversion: #FF5A1F measures only
+ * 2.81:1 on the light bg (fails even for large text), so orange *text*
+ * (eyebrows, footer headers, stat values) darkens to #C43E0A in light mode
+ * (4.69:1) while staying #FF5A1F in dark mode (6.35:1) — same brand color,
+ * tuned per-surface rather than inverted.
+ */
+:root {
+  --bg: #0A0A0A;
+  --bg-rgb: 10, 10, 10;
+  --surface: #111111;
+  --border: #242424;
+  --text: #F5F3EE;
+  --muted: #8A8A8A;
+  --muted-strong: #C4C0B8;
+  --accent: #FF5A1F;
+  --accent-text: #FF5A1F;
+  --accent-hover: #FF7A45;
+  --accent-contrast: #0A0A0A;
+}
+
+:root[data-theme="light"] {
+  --bg: #F2EFE7;
+  --bg-rgb: 242, 239, 231;
+  --surface: #EAE6DC;
+  --border: #D8D2C6;
+  --text: #0A0A0A;
+  --muted: #4A4744;
+  --muted-strong: #3A3733;
+  --accent: #FF5A1F;
+  --accent-text: #C43E0A;
+  --accent-hover: #D94E1A;
+  --accent-contrast: #0A0A0A;
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-secondary: var(--surface);
+  --color-card: var(--surface);
+  --color-border: var(--border);
+  --color-foreground: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-hover);
+  --font-display: 'Inter Tight', sans-serif;
+  --font-body: 'Manrope', sans-serif;
+
+  /* +1px across the small/body sizes for readability — see the light-mode
+     legibility pass. 2xl and up are left alone; headlines were already
+     stepped up in an earlier pass and moving them again re-opens that
+     hierarchy. The paired line-height tokens are unitless ratios, so they
+     scale proportionally without needing their own override. */
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-base: 1.0625rem;
+  --text-lg: 1.1875rem;
+  --text-xl: 1.3125rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* One brand-colored focus ring for every interactive element, keyboard-only
+   via :focus-visible so a mouse click never shows it — the browser default
+   (usually system blue) would be legible but would puncture the restrained
+   orange/near-black/warm-white palette the instant someone tabs through.
+   Uses --accent-text, not --accent: the raw fill color is only ~2.7:1 on the
+   light background — well under the 3:1 WCAG floor for a UI-component
+   indicator — which is exactly why --accent-text exists (4.5:1+ in both
+   themes) rather than a coincidence of this rule. */
+:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+html {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Manrope', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+/* Themed surfaces cross-fade instead of hard-cutting when the toggle fires.
+   Excluded under reduced motion since it's a non-essential transition. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+}
+
+body {
+  margin: 0;
+  /* Deliberately NO background-color here. ConstellationGrid renders as a
+     fixed z-index:-1 layer, and in CSS painting order an in-flow block's
+     background (body) paints ABOVE negative z-index descendants — an opaque
+     body background hides the constellation completely. The html rule above
+     keeps --bg as the pre-JS / JS-disabled fallback, and because it is on
+     the root element it propagates to the viewport canvas, which paints
+     beneath everything including the constellation layer. */
+  overflow-x: hidden;
+}
+
+/* Hide scrollbar by default */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+/* Desktop nav links: CSS-driven hover/active instead of JS-computed inline
+   colors, so the palette stays correct across themes without the component
+   needing to know which theme is active. */
+.nav-link {
+  color: var(--muted);
+  transition: color 0.15s;
+}
+.nav-link:hover {
+  color: var(--accent-hover);
+}
+.nav-link.active,
+.nav-link.active:hover {
+  color: var(--accent-text);
+}
+
+/* Solid-orange CTAs (START A PROJECT, GET IN TOUCH, SEND MESSAGE, …). These
+   used to fade toward transparent on hover (hover:opacity-80), which reads
+   as the accent going dull/grey right at the moment it should feel most
+   confident. This brightens and lifts instead — full-strength orange, never
+   washed out — using filter: brightness() rather than a new color token so
+   it works identically against both themes' identical --accent fill.
+   rgba(255,90,31,…) below is intentionally the literal accent RGB, not a
+   var(): the glow needs an alpha channel and --accent doesn't change
+   between themes, so there's nothing for a token to switch on. */
+.btn-accent {
+  transition: filter 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-accent:hover {
+  filter: brightness(1.12) saturate(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px -10px rgba(255, 90, 31, 0.55);
+}
+.btn-accent:active {
+  filter: brightness(1.04);
+  transform: translateY(0);
+  box-shadow: 0 4px 14px -8px rgba(255, 90, 31, 0.45);
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-accent:hover,
+  .btn-accent:active {
+    transform: none;
+  }
+}
+
+/* Theme toggle: was an 18px icon in --muted, which made it the least visible
+   control in the navbar. Full --text weight, accent on hover. */
+.theme-toggle {
+  color: var(--text);
+  transition: color 0.15s;
+}
+.theme-toggle:hover {
+  color: var(--accent-text);
+}
+
+/* Slow pulse on the hero's status dot, so the "AVAILABLE FOR NEW PROJECTS"
+   eyebrow reads as a live indicator rather than a label. Opacity only — no
+   layout or transform work — and disabled under reduced motion below. */
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.status-dot {
+  animation: status-pulse 2.4s ease-in-out infinite;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  /* The rule above zeroes animations and transitions but not scroll
+     behaviour, which is a separate property — smooth scrolling still
+     animates without this. */
+  html {
+    scroll-behavior: auto;
+  }
+}
