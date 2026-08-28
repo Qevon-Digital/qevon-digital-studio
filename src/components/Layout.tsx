@@ -26,6 +26,7 @@ const navLinks = [
  */
 const socialLinks = [
   { label: 'GitHub', url: 'https://github.com/Qevon-Digital' },
+  { label: 'Instagram', url: 'https://www.instagram.com/qevondigital/' },
   { label: 'LinkedIn', url: '' },
   { label: 'Twitter / X', url: '' },
 ].filter((link) => link.url);
