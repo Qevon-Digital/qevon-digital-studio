@@ -116,12 +116,9 @@ export const projects: Project[] = [
     challenge: 'Most social feeds flatten every post into the same generic timeline, disconnected from where it actually happened.',
     solution: 'Bingus anchors posts and connections to real places, so what you see is shaped by where you are rather than only who you follow.',
     result: 'A feed shaped by place rather than a follow list.',
-    stats: [
-      { label: 'ACTIVE USERS', value: '—' }, // TODO: active user count
-      { label: 'POSTS SHARED', value: '—' }, // TODO: total posts
-      { label: 'LOCATIONS TAGGED', value: '—' }, // TODO: distinct places used
-      { label: 'AVG SESSION', value: '—' }, // TODO: average session length
-    ],
+    // No real usage numbers exist yet — omitted rather than shown as
+    // placeholder dashes. Add real stats here once there's data to source.
+    stats: [],
     images: [
       { src: '/work/bingus-map.png', alt: 'Bingus map view showing nearby users and events', position: 'top' },
       { src: '/work/bingus-login.png', alt: 'Bingus login screen with brand mark', position: 'center' },

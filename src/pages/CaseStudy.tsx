@@ -61,21 +61,24 @@ export default function CaseStudy() {
           </div>
         </FadeIn>
 
-        {/* Stats */}
-        <FadeIn delay={0.1}>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-px mt-12 mb-16" style={{ background: 'var(--accent)' }}>
-            {cs.stats.map((s) => (
-              <div key={s.label} className="p-6 md:p-8" style={{ background: 'var(--bg)' }}>
-                <div className="text-3xl md:text-4xl font-black mb-2" style={{ fontFamily: "'Inter Tight', sans-serif", color: 'var(--accent-text)' }}>
-                  {s.value}
+        {/* Stats — omitted entirely (not shown empty) for projects with no
+            sourced numbers yet; see the comment on Bingus's `stats: []`. */}
+        {cs.stats.length > 0 && (
+          <FadeIn delay={0.1}>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-px mt-12 mb-16" style={{ background: 'var(--accent)' }}>
+              {cs.stats.map((s) => (
+                <div key={s.label} className="p-6 md:p-8" style={{ background: 'var(--bg)' }}>
+                  <div className="text-3xl md:text-4xl font-black mb-2" style={{ fontFamily: "'Inter Tight', sans-serif", color: 'var(--accent-text)' }}>
+                    {s.value}
+                  </div>
+                  <div className="text-xs tracking-[0.15em]" style={{ color: 'var(--muted)', fontFamily: "'Inter Tight', sans-serif" }}>
+                    {s.label}
+                  </div>
                 </div>
-                <div className="text-xs tracking-[0.15em]" style={{ color: 'var(--muted)', fontFamily: "'Inter Tight', sans-serif" }}>
-                  {s.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </FadeIn>
+              ))}
+            </div>
+          </FadeIn>
+        )}
 
         {/* Body */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16 mb-20">
