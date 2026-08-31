@@ -1,4 +1,5 @@
 import { RouterProvider } from 'react-router';
+import { Analytics } from '@vercel/analytics/react';
 import { router } from './routes';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -19,6 +20,7 @@ export default function App() {
     // actually closes the gap, not adding more Suspense.
     <ErrorBoundary>
       <RouterProvider router={router} />
+      <Analytics />
     </ErrorBoundary>
   );
 }
