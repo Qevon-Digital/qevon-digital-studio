@@ -135,7 +135,21 @@ export default function Services() {
                           <div className="text-xl md:text-2xl font-bold tracking-tight mb-1" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
                             {service.title}
                           </div>
-                          <div className="text-sm" style={{ color: 'var(--muted)' }}>{service.sub}</div>
+                          <div className="text-sm mb-3" style={{ color: 'var(--muted)' }}>{service.sub}</div>
+                          {/* Visible even collapsed — a first-time visitor
+                              scanning the page shouldn't have to open every
+                              row just to see what's actually in scope. */}
+                          <div className="flex flex-wrap gap-1.5">
+                            {service.tech.slice(0, 4).map((t) => (
+                              <span
+                                key={t}
+                                className="text-[11px] font-medium px-2 py-0.5"
+                                style={{ color: 'var(--muted-strong)', border: '1px solid var(--border)', borderRadius: '2px' }}
+                              >
+                                {t}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                         <motion.div
                           animate={{ rotate: open ? 45 : 0 }}

@@ -50,6 +50,14 @@ export interface Project {
   stats: ProjectStat[];
   /** Gallery images on the case study page. */
   images: ProjectImage[];
+  /**
+   * Real client quote only — never fabricate one. Omit until an actual
+   * client has given a real quote to use; CaseStudy renders this block
+   * only when present.
+   */
+  testimonial?: { quote: string; author: string; role: string };
+  /** Same rule as `testimonial`: only a real logo file, never a placeholder. */
+  clientLogo?: string;
 }
 
 export const projects: Project[] = [
@@ -104,7 +112,7 @@ export const projects: Project[] = [
     tags: ['Social', 'Mobile', 'Web'],
     year: '2025',
     cardDesc: 'A location-based social platform — posts and connections anchored to real places.',
-    hero: { src: null, alt: 'Bingus location feed' },
+    hero: { src: '/work/bingus-feed.png', alt: 'Bingus home feed showing posts from nearby users', position: 'top' },
     challenge: 'Most social feeds flatten every post into the same generic timeline, disconnected from where it actually happened.',
     solution: 'Bingus anchors posts and connections to real places, so what you see is shaped by where you are rather than only who you follow.',
     result: 'A feed shaped by place rather than a follow list.',
@@ -115,8 +123,8 @@ export const projects: Project[] = [
       { label: 'AVG SESSION', value: '—' }, // TODO: average session length
     ],
     images: [
-      { src: null, alt: 'Bingus map view' },
-      { src: null, alt: 'Bingus post feed' },
+      { src: '/work/bingus-map.png', alt: 'Bingus map view showing nearby users and events', position: 'top' },
+      { src: '/work/bingus-login.png', alt: 'Bingus login screen with brand mark', position: 'center' },
     ],
   },
   {

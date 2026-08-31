@@ -1,4 +1,19 @@
 User-agent: *
 Allow: /
 
+# AI answer-engine crawlers, explicitly allowed. These are separate from the
+# wildcard rule above only so it's clear they were considered on purpose, not
+# missed.
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
 Sitemap: https://qevon.vercel.app/sitemap.xml

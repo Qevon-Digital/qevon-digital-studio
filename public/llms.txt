@@ -1,0 +1,20 @@
+# Qevon
+
+> Software engineering studio. We design, engineer and deploy software and
+> the infrastructure it runs on. Founded 2026. No sales team — you talk
+> directly to the people building it.
+
+## Pages
+
+- [Home](https://qevon.vercel.app/): Overview of Qevon and its capabilities.
+- [Work](https://qevon.vercel.app/work): Every shipped project, with real, sourced results.
+- [Services](https://qevon.vercel.app/services): Software engineering, web & product, cloud & DevOps, AI & ML systems, security, data & analytics, legacy modernisation.
+- [About](https://qevon.vercel.app/about): Who Qevon is and how the studio works.
+- [Contact](https://qevon.vercel.app/contact): Start a project.
+
+## Projects
+
+- [Grand Motel OS](https://qevon.vercel.app/work/grandmotel-os): Point of sale, inventory and customers in one system — stock moves as orders do, and the day reconciles itself.
+- [SentinelOps](https://qevon.vercel.app/work/sentinelops): Point it at a repo. It runs 29 checks across 6 categories and scores production-readiness out of 100.
+- [Bingus](https://qevon.vercel.app/work/bingus): A location-based social platform — posts and connections anchored to real places.
+- [Phishing URL Detection](https://qevon.vercel.app/work/phishing-url-detection): A hybrid LSTM + CNN model that classifies URLs as phishing or legitimate from 90 engineered features.

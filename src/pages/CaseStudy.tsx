@@ -109,17 +109,47 @@ export default function CaseStudy() {
           ))}
         </div>
 
-        {/* Nav */}
+        {/* Testimonial — only rendered when a project actually has one; see
+            the field comment in projects.ts for why none are placeholder. */}
+        {cs.testimonial && (
+          <FadeIn>
+            <div className="mb-20 pl-6" style={{ borderLeft: '3px solid var(--accent)' }}>
+              <p className="text-xl md:text-2xl font-medium leading-snug mb-4" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                "{cs.testimonial.quote}"
+              </p>
+              <div className="flex items-center gap-3">
+                {cs.clientLogo && <img src={cs.clientLogo} alt="" className="h-6 w-auto" aria-hidden="true" />}
+                <span className="text-sm" style={{ color: 'var(--muted)' }}>
+                  {cs.testimonial.author}, {cs.testimonial.role}
+                </span>
+              </div>
+            </div>
+          </FadeIn>
+        )}
+
+        {/* CTA */}
         <FadeIn>
-          <div className="flex items-center justify-between pt-12" style={{ borderTop: '1px solid var(--border)' }}>
-            <Link to="/work" className="text-sm font-semibold tracking-[0.1em] transition-opacity hover:opacity-60" style={{ color: 'var(--muted)', fontFamily: "'Inter Tight', sans-serif" }}>
-              ← ALL WORK
-            </Link>
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 pt-16 pb-16" style={{ borderTop: '1px solid var(--border)' }}>
+            <div>
+              <h3 className="text-2xl md:text-3xl font-black tracking-tight mb-2" style={{ fontFamily: "'Inter Tight', sans-serif" }}>
+                HAVE SOMETHING SIMILAR IN MIND?
+              </h3>
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>Tell us what you're building — we'll be direct about scope, cost and timeline.</p>
+            </div>
             <MagneticButton>
-              <Link to="/contact" className="btn-accent inline-flex items-center gap-3 text-sm font-semibold tracking-[0.1em] px-6 py-3" style={{ background: 'var(--accent)', color: 'var(--accent-contrast)', fontFamily: "'Inter Tight', sans-serif" }}>
+              <Link to="/contact" className="btn-accent inline-flex items-center gap-3 flex-shrink-0 text-sm font-semibold tracking-[0.1em] px-8 py-4" style={{ background: 'var(--accent)', color: 'var(--accent-contrast)', fontFamily: "'Inter Tight', sans-serif" }}>
                 START A PROJECT →
               </Link>
             </MagneticButton>
+          </div>
+        </FadeIn>
+
+        {/* Nav */}
+        <FadeIn>
+          <div className="flex items-center justify-between pt-8" style={{ borderTop: '1px solid var(--border)' }}>
+            <Link to="/work" className="text-sm font-semibold tracking-[0.1em] transition-opacity hover:opacity-60" style={{ color: 'var(--muted)', fontFamily: "'Inter Tight', sans-serif" }}>
+              ← ALL WORK
+            </Link>
           </div>
         </FadeIn>
       </div>

@@ -7,6 +7,7 @@ import LogoIntro from './LogoIntro';
 import Logo from './Logo';
 import ThemeToggle from './ThemeToggle';
 import ConstellationGrid from './ConstellationGrid';
+import { getRouteMeta, SITE_URL } from '../lib/seo';
 
 const navLinks = [
   { label: 'WORK', href: '/work' },
@@ -87,6 +88,26 @@ export default function Layout() {
   useEffect(() => {
     setMenuOpen(false);
     window.scrollTo(0, 0);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    // Prerendering (scripts/prerender.mjs) bakes the correct <title>/meta
+    // into each route's static HTML at build time, but React Router doesn't
+    // reload the document on client-side navigation — without this, every
+    // page after the first-loaded one would keep showing whichever route's
+    // title happened to be in the initial HTML. Same getRouteMeta() call as
+    // the prerender script, so the two can't drift apart.
+    const meta = getRouteMeta(location.pathname);
+    document.title = meta.title;
+    const setMeta = (selector: string, attr: string, value: string) => {
+      const el = document.head.querySelector(selector);
+      if (el) el.setAttribute(attr, value);
+    };
+    setMeta('meta[name="description"]', 'content', meta.description);
+    setMeta('meta[property="og:title"]', 'content', meta.title);
+    setMeta('meta[property="og:description"]', 'content', meta.description);
+    setMeta('meta[property="og:image"]', 'content', meta.ogImage);
+    setMeta('meta[property="og:url"]', 'content', `${SITE_URL}${meta.path}`);
   }, [location.pathname]);
 
   return (

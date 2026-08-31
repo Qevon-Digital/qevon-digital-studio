@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "// build": "tsc runs first on purpose: Vite strips types without checking them, so without this a type error builds clean and ships. This is what makes Vercel fail the deploy instead.",
-    "build": "tsc --noEmit && vite build",
+    "// build": "tsc runs first on purpose: Vite strips types without checking them, so without this a type error builds clean and ships. This is what makes Vercel fail the deploy instead. The three steps after vite build prerender every route to static HTML -- see scripts/prerender.mjs.",
+    "build": "tsc --noEmit && vite build && vite build --ssr src/entry-server.tsx --outDir dist/server && node scripts/prerender.mjs && node scripts/cleanup-ssr.mjs",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "images": "node scripts/optimize-images.mjs",

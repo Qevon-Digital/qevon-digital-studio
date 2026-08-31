@@ -23,7 +23,11 @@ export default function FadeIn({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      // Content starts mostly-visible (0.6, not 0) rather than fully
+      // invisible: a first-time visitor or a slow device shouldn't have to
+      // wait on JS/scroll for text that's already there — the animation is
+      // a subtle lift-in, not a full reveal-from-nothing.
+      initial={{ opacity: 0.6, y: 12 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-60px' }}
       transition={{ duration: 0.65, delay, ease: [0.22, 1, 0.36, 1] }}
