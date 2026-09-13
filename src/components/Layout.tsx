@@ -138,16 +138,14 @@ export default function Layout() {
         />
       )}
 
-      {/* Navbar — always translucent/frosted, not just once scrolled. A
-          scroll-triggered opaque state used to kick in almost immediately on
-          pages with less top clearance (e.g. Work), so the header read as
-          solid there but stayed fully transparent on pages you linger at the
-          top of (e.g. the CaseStudy hero) — same header, two different looks.
-          One consistent frosted style everywhere fixes that. */}
+      {/* Navbar — solid/opaque everywhere, not scroll- or page-dependent.
+          Previously translucent with a backdrop-filter blur; fully opaque
+          makes the blur pointless (nothing shows through to blur), so it's
+          dropped along with it rather than left as dead compositor cost. */}
       <header
-        className="site-header fixed top-0 left-0 right-0 z-50"
+        className="fixed top-0 left-0 right-0 z-50"
         style={{
-          background: 'rgb(var(--bg-rgb) / 0.6)',
+          background: 'var(--bg)',
           borderBottom: '1px solid var(--border)',
         }}
       >
