@@ -65,8 +65,6 @@ const syncThemeColors = () => {
   GLOW_ALPHA_SCALE = light ? 1.3 : 1.1;
 };
 
-const lerpColor = (a: number[], b: number[], t: number) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
-
 // Framerate-independent exponential ease toward `target`. `tau` is roughly
 // "seconds to close most of the gap" — used for presence/heat ramps instead
 // of a linear step so they read as a soft build/decay rather than a ramp
@@ -130,6 +128,11 @@ const TOUCH_RELEASE_MS = 300;
 // continuously fluctuating signal, and following it at press speed made the
 // glow visibly pump and jump with every variation in scroll rate.
 const HEAT_SCROLL_TAU = 0.3;
+// Touch gets its own fast-rise/slow-fall pair for the same reason as
+// SCROLL_VEL_TAU_TOUCH_* above — a flick needs to bloom within its own
+// lifetime, not over the desktop wheel-scroll timescale.
+const HEAT_SCROLL_TAU_TOUCH_RISE = 0.05;
+const HEAT_SCROLL_TAU_TOUCH_FALL = 0.3;
 
 // Press-drag: nodes near the pointer get pushed along the drag vector.
 //
@@ -158,6 +161,11 @@ const HEAT_SCROLL_TAU = 0.3;
 // Speed, drag velocity, and the physics segment are all derived from THIS
 // point's motion, so all of them inherit that continuity for free.
 const FOLLOW_OMEGA = 26; // rad/s; settles in roughly 4/omega ≈ 150ms
+// A fast flick's touchstart-to-touchend can be as short as ~100ms — shorter
+// than FOLLOW_OMEGA's own settle time, so on touch the glow would never
+// catch up before the finger lifts. Stiffer spring, same critically-damped
+// shape (still continuous — see the block comment above), settles in ~85ms.
+const FOLLOW_OMEGA_TOUCH = 46;
 const DRAG_FOLLOW = 0.22;
 const MAX_DRAG_PX = 40;
 
@@ -185,9 +193,16 @@ const REPEL_SPEED_GAIN = 16;
 const SCROLL_HEAT_NORM = 1200; // px/sec of scroll that reads as "full" heat
 // Long enough that heat follows the overall arc of a scroll rather than its
 // frame-to-frame noise — this was the main source of the heat "jumping".
+// Split rise/fall on touch: the pump this guards against only comes from
+// chasing the signal back *down*, so a fast rise + the original (slow) fall
+// keeps that protection while a flick registers in a couple of frames
+// instead of ~25. Desktop (mouse wheel) keeps the single symmetric tau.
 const SCROLL_VEL_TAU = 0.16;
+const SCROLL_VEL_TAU_TOUCH_RISE = 0.04;
+const SCROLL_VEL_TAU_TOUCH_FALL = 0.16;
 const SCROLL_VEL_CLAMP = 4000;
 const SCROLL_ENGAGE_PX_S = 40; // scroll speed below which it no longer "engages"
+const SCROLL_ENGAGE_PX_S_TOUCH = 15; // lower floor — "even the littlest" flick should register
 
 // Gesture energy: starts fresh at 1 the instant a press or a scroll
 // engagement begins, and decays toward a floor the longer it continues
@@ -391,11 +406,20 @@ export default function ConstellationGrid({ paused = false }: { paused?: boolean
       pointer.lightRadius = isPhone ? LIGHT_RADIUS_PHONE : LIGHT_RADIUS_DESKTOP;
       pointer.heatExpand = isPhone ? HEAT_EXPAND_PHONE : HEAT_EXPAND_DESKTOP;
 
+      // Centre the mesh. cols/rows are rounded UP and then padded by one, so
+      // the grid always spans at least the full canvas — anchored at 0 that
+      // put the entire leftover overhang on the right/bottom edge (on a 375px
+      // phone: a ~35px gap on the right, none on the left). Both offsets are
+      // therefore <= 0, and splitting them halves the overhang onto each edge
+      // so the margins match. Density is untouched — this only shifts anchors.
+      const offsetX = (width - (cols - 1) * spacing) / 2;
+      const offsetY = (height - (rows - 1) * spacing) / 2;
+
       const next: Node[] = new Array(cols * rows);
       for (let i = 0; i < cols; i++) {
         for (let j = 0; j < rows; j++) {
-          const baseX = i * spacing;
-          const baseY = j * spacing;
+          const baseX = offsetX + i * spacing;
+          const baseY = offsetY + j * spacing;
           const h = hash01(i, j);
           const carried = i < prevCols && j < prevRows ? prev[i * prevRows + j] : undefined;
           next[i * rows + j] = {
@@ -587,9 +611,22 @@ export default function ConstellationGrid({ paused = false }: { paused?: boolean
       [2, -2], [2, -1], [2, 0], [2, 1], [2, 2],
     ];
 
+    // Connections are bucketed into a handful of alpha bands and drawn as one
+    // Path2D + one stroke() per band, rather than one beginPath/strokeStyle
+    // string/stroke per line (~500/frame at this density). The banding is
+    // invisible — adjacent lines already differ in alpha by less than a
+    // band's width — but it turns ~500 draw calls and string allocations
+    // into ~CONN_ALPHA_BUCKETS of each, which is what actually keeps this
+    // pass inside a 60fps mobile frame budget.
+    const CONN_ALPHA_BUCKETS = 6;
+    const connPaths: Path2D[] = Array.from({ length: CONN_ALPHA_BUCKETS }, () => new Path2D());
+
     const drawConnections = (alphaScale: number) => {
       const maxSq = maxConnDist * maxConnDist;
+      const nodeRgbStr = NODE_RGB.join(',');
       ctx.lineWidth = 0.6;
+
+      for (let b = 0; b < CONN_ALPHA_BUCKETS; b++) connPaths[b] = new Path2D();
 
       for (let i = 0; i < cols; i++) {
         for (let j = 0; j < rows; j++) {
@@ -606,17 +643,23 @@ export default function ConstellationGrid({ paused = false }: { paused?: boolean
             const distSq = ndx * ndx + ndy * ndy;
             if (distSq >= maxSq) continue;
 
-            const alpha = (1 - Math.sqrt(distSq) / maxConnDist) * alphaScale;
-            ctx.strokeStyle = `rgba(${NODE_RGB.join(',')}, ${alpha})`;
-            ctx.beginPath();
+            const strength = 1 - Math.sqrt(distSq) / maxConnDist; // 0..1
+            const bucket = Math.min(CONN_ALPHA_BUCKETS - 1, Math.floor(strength * CONN_ALPHA_BUCKETS));
+            const path = connPaths[bucket];
             // Lines are drawn at the jittered position too, so a long-press
             // buzz moves dots and their links together instead of tearing
             // the mesh apart.
-            ctx.moveTo(n.x + n.jx, n.y + n.jy);
-            ctx.lineTo(n2.x + n2.jx, n2.y + n2.jy);
-            ctx.stroke();
+            path.moveTo(n.x + n.jx, n.y + n.jy);
+            path.lineTo(n2.x + n2.jx, n2.y + n2.jy);
           }
         }
+      }
+
+      for (let b = 0; b < CONN_ALPHA_BUCKETS; b++) {
+        // Bucket midpoint stands in for the exact per-line alpha it replaces.
+        const alpha = ((b + 0.5) / CONN_ALPHA_BUCKETS) * alphaScale;
+        ctx.strokeStyle = `rgba(${nodeRgbStr}, ${alpha})`;
+        ctx.stroke(connPaths[b]);
       }
     };
 
@@ -730,11 +773,25 @@ export default function ConstellationGrid({ paused = false }: { paused?: boolean
       prevScrollY = scrollY;
       const rawScrollVel = scrollDeltaPx / (dt || 1 / 60);
       const clampedScrollVel = Math.max(-SCROLL_VEL_CLAMP, Math.min(SCROLL_VEL_CLAMP, rawScrollVel));
-      scrollVel = approach(scrollVel, clampedScrollVel, dt, SCROLL_VEL_TAU);
+      // Touch: fast-rise/slow-fall (see SCROLL_VEL_TAU_TOUCH_* above) so a
+      // flick's peak velocity registers in a couple of frames; desktop wheel
+      // scroll keeps the original single symmetric tau.
+      const scrollVelRising = Math.abs(clampedScrollVel) > Math.abs(scrollVel);
+      const scrollVelTau = isCoarse
+        ? scrollVelRising ? SCROLL_VEL_TAU_TOUCH_RISE : SCROLL_VEL_TAU_TOUCH_FALL
+        : SCROLL_VEL_TAU;
+      scrollVel = approach(scrollVel, clampedScrollVel, dt, scrollVelTau);
       // Only "engages" glow/heat when there's no live pointer to more
       // precisely drive them already — a steady mouse hover during a
       // wheel-scroll shouldn't fight with the hover glow sitting under it.
-      const scrollActive = pointer.x <= -500 && Math.abs(scrollVel) > SCROLL_ENGAGE_PX_S;
+      // On touch that means "finger not currently down" rather than "parked
+      // offscreen": gating on the latter left a TOUCH_RELEASE_MS-long dead
+      // zone right after a flick — exactly the moment of peak momentum —
+      // before scroll could take over from the lifted touch.
+      const scrollEngagePx = isCoarse ? SCROLL_ENGAGE_PX_S_TOUCH : SCROLL_ENGAGE_PX_S;
+      const scrollActive = isCoarse
+        ? !pointer.active && Math.abs(scrollVel) > scrollEngagePx
+        : pointer.x <= -500 && Math.abs(scrollVel) > scrollEngagePx;
 
       // Gesture energy: full strength right as a press/scroll begins, taper
       // while it continues uninterrupted, snap back to full the moment
@@ -760,8 +817,11 @@ export default function ConstellationGrid({ paused = false }: { paused?: boolean
         // Critically damped spring, semi-implicit Euler. Velocity is
         // integrated rather than assigned, which is what keeps the motion
         // C1-continuous through a ragged input signal — see FOLLOW_OMEGA.
-        const k = FOLLOW_OMEGA * FOLLOW_OMEGA;
-        const c = 2 * FOLLOW_OMEGA;
+        // Touch gets the stiffer FOLLOW_OMEGA_TOUCH so the glow can still
+        // arrive within a flick's own (often sub-150ms) lifetime.
+        const followOmega = isCoarse ? FOLLOW_OMEGA_TOUCH : FOLLOW_OMEGA;
+        const k = followOmega * followOmega;
+        const c = 2 * followOmega;
         pointer.glowVX += (k * (pointer.x - pointer.glowX) - c * pointer.glowVX) * dt;
         pointer.glowVY += (k * (pointer.y - pointer.glowY) - c * pointer.glowVY) * dt;
         pointer.glowX += pointer.glowVX * dt;
@@ -831,8 +891,17 @@ export default function ConstellationGrid({ paused = false }: { paused?: boolean
       // A press is a discrete event and should snap; scroll-driven heat
       // follows a continuously fluctuating velocity, so it gets a much
       // longer ramp — at press speed it visibly pumped with every variation
-      // in scroll rate, which is what read as the heat "jumping".
-      const heatTau = pointer.active ? HEAT_RISE_TAU : scrollActive ? HEAT_SCROLL_TAU : HEAT_FALL_TAU;
+      // in scroll rate, which is what read as the heat "jumping". Touch
+      // splits that ramp fast-rise/slow-fall for the same reason as
+      // SCROLL_VEL_TAU_TOUCH_* — a flick needs to bloom inside its own
+      // lifetime while keeping the anti-pump protection on the way down.
+      const heatTau = pointer.active
+        ? HEAT_RISE_TAU
+        : scrollActive
+          ? isCoarse
+            ? heatTarget > pointer.heat ? HEAT_SCROLL_TAU_TOUCH_RISE : HEAT_SCROLL_TAU_TOUCH_FALL
+            : HEAT_SCROLL_TAU
+          : HEAT_FALL_TAU;
       pointer.heat = approach(pointer.heat, heatTarget, dt, heatTau);
       // Exponential decay never actually reaches zero — snap it, so a release
       // leaves no residual warmth sitting in the scene (and so the idle check
@@ -994,6 +1063,10 @@ export default function ConstellationGrid({ paused = false }: { paused?: boolean
 
       drawConnections(connAlpha * MESH_ALPHA);
 
+      // Hoisted out of the per-node loop below — these don't change
+      // mid-frame, so there's no reason to rebuild the string for every node.
+      const nodeRgbStr = NODE_RGB.join(',');
+
       for (let i = 0; i < nodes.length; i++) {
         const n = nodes[i];
         const px = n.x + n.jx;
@@ -1011,12 +1084,20 @@ export default function ConstellationGrid({ paused = false }: { paused?: boolean
         const proximity = Math.max(0, 1 - dist / pointer.lightRadius) * pointer.presence;
         const baseAlpha = (0.5 + Math.sin(n.pulse) * 0.1) * MESH_ALPHA;
         const alpha = Math.min(0.9, baseAlpha + proximity * 0.35);
-        // Capped below 1 so lit nodes warm toward the brand orange rather
-        // than hitting full saturation — a tint, not a highlighter.
-        const color =
-          proximity > 0 ? lerpColor(NODE_RGB, ACCENT_RGB, Math.min(0.8, proximity * 1.2)) : NODE_RGB;
 
-        ctx.fillStyle = `rgba(${color.join(',')}, ${alpha})`;
+        if (proximity > 0) {
+          // Capped below 1 so lit nodes warm toward the brand orange rather
+          // than hitting full saturation — a tint, not a highlighter. Scalar
+          // lerp straight into the fillStyle string instead of lerpColor's
+          // array allocation — this runs once per node per frame.
+          const t = Math.min(0.8, proximity * 1.2);
+          const r = Math.round(NODE_RGB[0] + (ACCENT_RGB[0] - NODE_RGB[0]) * t);
+          const g = Math.round(NODE_RGB[1] + (ACCENT_RGB[1] - NODE_RGB[1]) * t);
+          const bl = Math.round(NODE_RGB[2] + (ACCENT_RGB[2] - NODE_RGB[2]) * t);
+          ctx.fillStyle = `rgba(${r}, ${g}, ${bl}, ${alpha})`;
+        } else {
+          ctx.fillStyle = `rgba(${nodeRgbStr}, ${alpha})`;
+        }
 
         // Grows by well under one radius at the centre of the light. A
         // larger multiplier made nearby dots balloon and read as a

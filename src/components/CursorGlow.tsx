@@ -14,28 +14,14 @@ export default function CursorGlow() {
     const fine = window.matchMedia('(hover: hover) and (pointer: fine)');
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-    const updateEnabled = () => {
-      enabledRef.current = fine.matches && !reduced.matches;
-      if (dotRef.current) dotRef.current.style.opacity = enabledRef.current ? '1' : '0';
-    };
-    updateEnabled();
-    fine.addEventListener('change', updateEnabled);
-    reduced.addEventListener('change', updateEnabled);
-
     let x = window.innerWidth / 2;
     let y = window.innerHeight / 2;
     let targetX = x;
     let targetY = y;
-    let raf: number;
-
-    const onMove = (e: PointerEvent) => {
-      if (e.pointerType !== 'mouse') return;
-      targetX = e.clientX;
-      targetY = e.clientY;
-    };
+    let raf = 0;
 
     const tick = () => {
-      if (enabledRef.current && dotRef.current) {
+      if (dotRef.current) {
         x += (targetX - x) * 0.12;
         y += (targetY - y) * 0.12;
         dotRef.current.style.transform = `translate3d(${x - 100}px, ${y - 100}px, 0)`;
@@ -43,14 +29,37 @@ export default function CursorGlow() {
       raf = requestAnimationFrame(tick);
     };
 
+    // Was unconditionally re-scheduling every frame even when disabled
+    // (touch devices, reduced motion) — a 60fps main-thread callback doing
+    // nothing on exactly the devices this needs to stay off of. Now the loop
+    // itself starts/stops with `enabled` instead of ticking forever no-op.
+    const updateEnabled = () => {
+      enabledRef.current = fine.matches && !reduced.matches;
+      if (dotRef.current) dotRef.current.style.opacity = enabledRef.current ? '1' : '0';
+      if (enabledRef.current && !raf) {
+        raf = requestAnimationFrame(tick);
+      } else if (!enabledRef.current && raf) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    };
+    updateEnabled();
+    fine.addEventListener('change', updateEnabled);
+    reduced.addEventListener('change', updateEnabled);
+
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return;
+      targetX = e.clientX;
+      targetY = e.clientY;
+    };
+
     window.addEventListener('pointermove', onMove, { passive: true });
-    raf = requestAnimationFrame(tick);
 
     return () => {
       fine.removeEventListener('change', updateEnabled);
       reduced.removeEventListener('change', updateEnabled);
       window.removeEventListener('pointermove', onMove);
-      cancelAnimationFrame(raf);
+      if (raf) cancelAnimationFrame(raf);
     };
   }, []);
 

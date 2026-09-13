@@ -68,7 +68,6 @@ const connectIcon: Record<string, ReactNode> = {
 };
 
 export default function Layout() {
-  const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   // Keeps the constellation's render loop off entirely while the intro
   // covers the screen (see ConstellationGrid's `paused` prop) rather than
@@ -78,12 +77,6 @@ export default function Layout() {
   const [introExiting, setIntroExiting] = useState(false);
   const location = useLocation();
   const reduceMotion = useReducedMotion();
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 32);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -145,13 +138,17 @@ export default function Layout() {
         />
       )}
 
-      {/* Navbar */}
+      {/* Navbar — always translucent/frosted, not just once scrolled. A
+          scroll-triggered opaque state used to kick in almost immediately on
+          pages with less top clearance (e.g. Work), so the header read as
+          solid there but stayed fully transparent on pages you linger at the
+          top of (e.g. the CaseStudy hero) — same header, two different looks.
+          One consistent frosted style everywhere fixes that. */}
       <header
-        className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+        className="site-header fixed top-0 left-0 right-0 z-50"
         style={{
-          background: scrolled ? 'rgb(var(--bg-rgb) / 0.92)' : 'transparent',
-          backdropFilter: scrolled ? 'blur(12px)' : 'none',
-          borderBottom: scrolled ? '1px solid var(--border)' : '1px solid transparent',
+          background: 'rgb(var(--bg-rgb) / 0.6)',
+          borderBottom: '1px solid var(--border)',
         }}
       >
         <nav className="max-w-[1440px] mx-auto px-6 lg:px-12 h-16 flex items-center justify-between">
